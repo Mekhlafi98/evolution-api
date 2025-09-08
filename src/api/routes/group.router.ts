@@ -6,7 +6,9 @@ import {
   GroupDescriptionDto,
   GroupInvite,
   GroupJid,
+  GroupJoinApprovalModeDto,
   GroupPictureDto,
+  GroupRequestParticipantsUpdateDto,
   GroupSendInvite,
   GroupSubjectDto,
   GroupToggleEphemeralDto,
@@ -20,6 +22,8 @@ import {
   getParticipantsSchema,
   groupInviteSchema,
   groupJidSchema,
+  groupJoinApprovalModeSchema,
+  groupRequestParticipantsUpdateSchema,
   groupSendInviteSchema,
   toggleEphemeralSchema,
   updateGroupDescriptionSchema,
@@ -195,6 +199,36 @@ export class GroupRouter extends RouterBroker {
         });
 
         res.status(HttpStatus.OK).json(response);
+      })
+      .get(this.routerPath('requestParticipantsList'), ...guards, async (req, res) => {
+        const response = await this.groupValidate<GroupJid>({
+          request: req,
+          schema: groupJidSchema,
+          ClassRef: GroupJid,
+          execute: (instance, data) => groupController.getRequestParticipantsList(instance, data),
+        });
+
+        res.status(HttpStatus.OK).json(response);
+      })
+      .post(this.routerPath('updateRequestParticipants'), ...guards, async (req, res) => {
+        const response = await this.groupValidate<GroupRequestParticipantsUpdateDto>({
+          request: req,
+          schema: groupRequestParticipantsUpdateSchema,
+          ClassRef: GroupRequestParticipantsUpdateDto,
+          execute: (instance, data) => groupController.updateRequestParticipants(instance, data),
+        });
+
+        res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('updateJoinApprovalMode'), ...guards, async (req, res) => {
+        const response = await this.groupValidate<GroupJoinApprovalModeDto>({
+          request: req,
+          schema: groupJoinApprovalModeSchema,
+          ClassRef: GroupJoinApprovalModeDto,
+          execute: (instance, data) => groupController.updateJoinApprovalMode(instance, data),
+        });
+
+        res.status(HttpStatus.CREATED).json(response);
       });
   }
 
