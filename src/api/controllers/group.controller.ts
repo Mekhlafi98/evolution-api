@@ -5,7 +5,9 @@ import {
   GroupDescriptionDto,
   GroupInvite,
   GroupJid,
+  GroupJoinApprovalModeDto,
   GroupPictureDto,
+  GroupRequestParticipantsUpdateDto,
   GroupSendInvite,
   GroupSubjectDto,
   GroupToggleEphemeralDto,
@@ -80,5 +82,17 @@ export class GroupController {
 
   public async leaveGroup(instance: InstanceDto, groupJid: GroupJid) {
     return await this.waMonitor.waInstances[instance.instanceName].leaveGroup(groupJid);
+  }
+
+  public async getRequestParticipantsList(instance: InstanceDto, groupJid: GroupJid) {
+    return await this.waMonitor.waInstances[instance.instanceName].getRequestParticipantsList(groupJid);
+  }
+
+  public async updateRequestParticipants(instance: InstanceDto, update: GroupRequestParticipantsUpdateDto) {
+    return await this.waMonitor.waInstances[instance.instanceName].updateRequestParticipants(update);
+  }
+
+  public async updateJoinApprovalMode(instance: InstanceDto, update: GroupJoinApprovalModeDto) {
+    return await this.waMonitor.waInstances[instance.instanceName].updateJoinApprovalMode(update);
   }
 }

@@ -22,7 +22,9 @@ import {
   GroupDescriptionDto,
   GroupInvite,
   GroupJid,
+  GroupJoinApprovalModeDto,
   GroupPictureDto,
+  GroupRequestParticipantsUpdateDto,
   GroupSendInvite,
   GroupSubjectDto,
   GroupToggleEphemeralDto,
@@ -4292,6 +4294,37 @@ export class BaileysStartupService extends ChannelStartupService {
       return { groupJid: id.groupJid, leave: true };
     } catch (error) {
       throw new BadRequestException('Unable to leave the group', error.toString());
+    }
+  }
+
+  public async getRequestParticipantsList(id: GroupJid) {
+    try {
+      const requests = await this.client.groupRequestParticipantsList(id.groupJid);
+      return { groupJid: id.groupJid, requests };
+    } catch (error) {
+      throw new BadRequestException('Unable to get request participants list', error.toString());
+    }
+  }
+
+  public async updateRequestParticipants(update: GroupRequestParticipantsUpdateDto) {
+    try {
+      const results = await this.client.groupRequestParticipantsUpdate(
+        update.groupJid,
+        update.participants,
+        update.action
+      );
+      return { groupJid: update.groupJid, action: update.action, results };
+    } catch (error) {
+      throw new BadRequestException('Unable to update request participants', error.toString());
+    }
+  }
+
+  public async updateJoinApprovalMode(update: GroupJoinApprovalModeDto) {
+    try {
+      await this.client.groupJoinApprovalMode(update.groupJid, update.mode);
+      return { groupJid: update.groupJid, mode: update.mode, success: true };
+    } catch (error) {
+      throw new BadRequestException('Unable to update join approval mode', error.toString());
     }
   }
 
