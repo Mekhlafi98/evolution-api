@@ -63,3 +63,11 @@ export class GroupRequestParticipantsUpdateDto extends GroupJid {
   action: 'approve' | 'reject';
   participants: string[];
 }
+
+export class GroupJoinRequestDto {
+  groupJid: string;
+  requesterJid: string;
+  requesterName?: string;
+  timestamp: number;
+  requestId?: string;
+}

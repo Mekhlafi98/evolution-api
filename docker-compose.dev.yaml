@@ -1,11 +1,11 @@
 services:
   api:
     container_name: evolution_api
-    image: evolution/api:local
+    image: evolution/api:local2
     build: .
     restart: always
-    ports:
-      - 8080:8080
+    #ports:
+    #  - 8080:8080
     volumes:
       - evolution_instances:/evolution/instances
     networks:

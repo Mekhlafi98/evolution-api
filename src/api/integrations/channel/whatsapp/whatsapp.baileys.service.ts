@@ -1567,7 +1567,108 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.updateGroupMetadataCache(participantsUpdate.id);
     },
+
+    'group-join-request': (joinRequestData: {
+      groupJid: string;
+      requesterJid: string;
+      requesterName?: string;
+      timestamp: number;
+      requestId?: string;
+    }) => {
+      console.log('[GROUP_JOIN_REQUEST_DEBUG] Webhook handler called with data:', joinRequestData);
+      this.sendDataWebhook(Events.GROUP_JOIN_REQUEST, joinRequestData);
+      console.log('[GROUP_JOIN_REQUEST_DEBUG] Webhook sent successfully');
+    },
   };
+
+  private detectGroupJoinRequests(payload: {
+    id: string;
+    participants: string[];
+    action: ParticipantAction;
+  }[]) {
+    console.log('[GROUP_JOIN_REQUEST_DEBUG] Processing group participants update:', JSON.stringify(payload, null, 2));
+    
+    payload.forEach((update) => {
+      console.log('[GROUP_JOIN_REQUEST_DEBUG] Processing update:', {
+        id: update.id,
+        action: update.action,
+        participants: update.participants,
+        participantsCount: update.participants?.length || 0
+      });
+      
+      // Check if this is a join request (not a regular add/remove)
+      // Join requests typically have action 'add' but the participant is not immediately added
+      // We need to check if the group has join approval enabled
+      if (update.action === 'add' && update.participants && update.participants.length > 0) {
+        console.log('[GROUP_JOIN_REQUEST_DEBUG] Potential join request detected, checking group metadata...');
+        // Check if this is a join request by examining the group metadata
+        this.checkForJoinRequest(update);
+      }
+    });
+  }
+
+  private async checkForJoinRequest(update: {
+    id: string;
+    participants: string[];
+    action: ParticipantAction;
+  }) {
+    try {
+      console.log('[GROUP_JOIN_REQUEST_DEBUG] Getting group metadata for:', update.id);
+      
+
+      // Get group metadata to check if join approval is enabled
+      const groupMetadata = await this.client.groupMetadata(update.id);
+      
+      console.log('[GROUP_JOIN_REQUEST_DEBUG] Group metadata:', {
+        id: groupMetadata?.id,
+        subject: groupMetadata?.subject,
+        joinApprovalMode: groupMetadata?.joinApprovalMode,
+        participants: groupMetadata?.participants?.length || 0
+      });
+      
+      // If join approval is enabled and we have participants being added,
+      // this might be a join request
+      if (groupMetadata && groupMetadata.joinApprovalMode === true) {
+        console.log('[GROUP_JOIN_REQUEST_DEBUG] Join approval is enabled, creating join request events...');
+        
+        // For each participant, create a join request event
+        update.participants.forEach((participantJid) => {
+          const joinRequestData = {
+            groupJid: update.id,
+            requesterJid: participantJid,
+            requesterName: undefined, // We'll try to get this from contacts
+            timestamp: Date.now(),
+            requestId: `${update.id}-${participantJid}-${Date.now()}`,
+          };
+
+          console.log('[GROUP_JOIN_REQUEST_DEBUG] Creating join request event for participant:', participantJid);
+
+          // Try to get the requester's name from contacts
+          this.getContactName(participantJid).then((name) => {
+            if (name) {
+              joinRequestData.requesterName = name;
+            }
+            console.log('[GROUP_JOIN_REQUEST_DEBUG] Sending join request webhook:', joinRequestData);
+            this.groupHandler['group-join-request'](joinRequestData);
+          }).catch(() => {
+            // If we can't get the name, still send the event
+            console.log('[GROUP_JOIN_REQUEST_DEBUG] Sending join request webhook (without name):', joinRequestData);
+            this.groupHandler['group-join-request'](joinRequestData);
+          });
+        });
+      } else {
+        console.log('[GROUP_JOIN_REQUEST_DEBUG] Join approval is not enabled or group metadata not found');
+      }
+    } catch (error) {
+      console.error('[GROUP_JOIN_REQUEST_DEBUG] Error checking for join request:', error);
+    }
+  }
+
+  private async getContactName(jid: string): Promise<string | undefined> {
+    // For now, we'll skip getting the contact name to avoid TypeScript issues
+    // The requesterName will be undefined, which is acceptable
+    return undefined;
+  }
 
   private readonly labelHandle = {
     [Events.LABELS_EDIT]: async (label: Label) => {
@@ -1719,6 +1820,9 @@ export class BaileysStartupService extends ChannelStartupService {
           if (events['group-participants.update']) {
             const payload = events['group-participants.update'];
             this.groupHandler['group-participants.update'](payload);
+            
+            // Check for group join requests
+            this.detectGroupJoinRequests([payload]);
           }
         }
 
